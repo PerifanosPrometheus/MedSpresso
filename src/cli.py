@@ -126,19 +126,16 @@ def extract(
             try:
                 for chunk in client.generate(prompt):
                     result.append(chunk)
-                    console.print(chunk, end='', flush=True)
+                    # Use print() for streaming output
+                    print(chunk, end='', flush=True)
                 
                 final_result = ''.join(result)
                 
                 # Handle output
                 if output_file:
-                    try:
-                        output_file.parent.mkdir(parents=True, exist_ok=True)
-                        output_file.write_text(final_result)
-                        console.print(f"\n[green]Results written to:[/green] {output_file}")
-                    except Exception as e:
-                        console.print(f"[red]Error writing output file:[/red] {e}")
-                        raise click.Abort()
+                    output_file.parent.mkdir(parents=True, exist_ok=True)
+                    output_file.write_text(final_result)
+                    console.print(f"\n[green]Results written to:[/green] {output_file}")
                 else:
                     console.print("\n[bold]Results:[/bold]")
                     console.print("─" * 40)
