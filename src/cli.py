@@ -7,6 +7,7 @@ import json
 from typing import Optional
 from .ollama import OllamaClient
 from .model_configs import get_model_config, list_supported_models
+import requests
 
 console = Console()
 
@@ -22,6 +23,14 @@ def get_available_prompt_types(prompts_file: Path = DEFAULT_PROMPTS_FILE) -> lis
     except Exception as e:
         console.print(f"[red]Error loading prompts file:[/red] {e}")
         return ['medications']
+
+def check_ollama_running():
+    """Check if Ollama service is running."""
+    try:
+        requests.get("http://localhost:11434/api/tags")
+        return True
+    except requests.exceptions.ConnectionError:
+        return False
 
 @click.group()
 def cli():
@@ -80,6 +89,10 @@ def extract(
     output_file: Optional[Path],
 ):
     """Extract information from clinical text"""
+    if not check_ollama_running():
+        console.print("[red]Error:[/red] Ollama service is not running")
+        console.print("Please start Ollama with:\n[green]ollama serve[/green]")
+        raise click.Abort()
     try:
         # Initialize Ollama client
         client = OllamaClient(model)
