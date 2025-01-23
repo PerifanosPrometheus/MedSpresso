@@ -1,0 +1,16 @@
+conversation: |
+  {text}
+
+medications: |
+  Extract medications from the following clinical text and format them as a JSON list. 
+  Include name, dosage, frequency, and route if available.
+  
+  Clinical Text:
+  {text}
+
+diagnoses: |
+    Extract diagnoses from the following clinical text.
+    List each diagnosis on a new line.
+    
+    Clinical Text:
+    {text} 
