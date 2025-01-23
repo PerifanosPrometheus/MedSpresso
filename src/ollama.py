@@ -1,8 +1,6 @@
 """Ollama API client for MedSpresso."""
 import requests
-from typing import Iterator, Optional
-from pathlib import Path
-import json
+from typing import Optional
 from rich.console import Console
 
 console = Console()
@@ -25,7 +23,7 @@ class OllamaClient:
                 "3. Pull model: ollama pull " + model
             )
     
-    def generate(self, prompt: str, stream: bool = True) -> Iterator[str]:
+    def generate(self, prompt: str) -> str:
         """Generate text from the model."""
         try:
             response = requests.post(
@@ -34,30 +32,16 @@ class OllamaClient:
                     "model": self.model,
                     "prompt": prompt,
                     "system": self.system,
-                    "stream": stream
-                },
-                stream=stream
+                    "stream": False
+                }
             )
             response.raise_for_status()
             
-            if stream:
-                for line in response.iter_lines():
-                    if line:
-                        try:
-                            json_response = json.loads(line)
-                            if 'response' in json_response:
-                                yield json_response['response']
-                            elif 'error' in json_response:
-                                raise Exception(f"Ollama error: {json_response['error']}")
-                        except json.JSONDecodeError as e:
-                            console.print(f"[yellow]Warning: Could not parse JSON response:[/yellow] {e}")
-                            console.print(f"[yellow]Raw line:[/yellow] {line}")
-                            continue
-            else:
-                json_response = response.json()
-                if 'error' in json_response:
-                    raise Exception(f"Ollama error: {json_response['error']}")
-                yield json_response['response']
+            json_response = response.json()
+            if 'error' in json_response:
+                raise Exception(f"Ollama error: {json_response['error']}")
+            
+            return json_response['response']
                 
         except requests.exceptions.RequestException as e:
             raise Exception(f"HTTP error occurred: {e}")

@@ -122,24 +122,18 @@ def extract(
 
         # Run inference
         with console.status("[bold green]Running inference...") as status:
-            result = []
             try:
-                for chunk in client.generate(prompt):
-                    result.append(chunk)
-                    # Use print() for streaming output
-                    print(chunk, end='', flush=True)
-                
-                final_result = ''.join(result)
+                result = client.generate(prompt)
                 
                 # Handle output
                 if output_file:
                     output_file.parent.mkdir(parents=True, exist_ok=True)
-                    output_file.write_text(final_result)
+                    output_file.write_text(result)
                     console.print(f"\n[green]Results written to:[/green] {output_file}")
                 else:
                     console.print("\n[bold]Results:[/bold]")
                     console.print("─" * 40)
-                    console.print(final_result)
+                    console.print(result)
                     console.print("─" * 40)
 
             except json.JSONDecodeError as e:
