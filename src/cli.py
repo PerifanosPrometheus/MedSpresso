@@ -98,16 +98,24 @@ def extract(
         client = OllamaClient(model)
         
         with console.status("[bold green]Loading prompt template..."):
-            # Load prompt template
-            with open(DEFAULT_PROMPTS_FILE) as f:
-                prompts = yaml.safe_load(f)
-                if prompt_type not in prompts:
-                    raise click.BadParameter(f"Prompt type '{prompt_type}' not found in prompts file")
-                prompt_template = prompts[prompt_type]
+            try:
+                # Load prompt template
+                with open(DEFAULT_PROMPTS_FILE) as f:
+                    prompts = yaml.safe_load(f)
+                    if prompt_type not in prompts:
+                        raise click.BadParameter(f"Prompt type '{prompt_type}' not found in prompts file")
+                    prompt_template = prompts[prompt_type]
+            except Exception as e:
+                console.print(f"[red]Error loading prompt template:[/red] {e}")
+                raise click.Abort()
 
-            # Read input text
-            with open(input_file) as f:
-                text = f.read().strip()
+            try:
+                # Read input text
+                with open(input_file) as f:
+                    text = f.read().strip()
+            except Exception as e:
+                console.print(f"[red]Error reading input file:[/red] {e}")
+                raise click.Abort()
 
             # Create the prompt
             prompt = prompt_template.format(text=text)
@@ -115,25 +123,44 @@ def extract(
         # Run inference
         with console.status("[bold green]Running inference...") as status:
             result = []
-            for chunk in client.generate(prompt):
-                result.append(chunk)
-                console.print(chunk, end='')
-            
-            final_result = ''.join(result)
-            
-            # Handle output
-            if output_file:
-                output_file.parent.mkdir(parents=True, exist_ok=True)
-                output_file.write_text(final_result)
-                console.print(f"\n[green]Results written to:[/green] {output_file}")
-            else:
-                console.print("\n[bold]Results:[/bold]")
-                console.print("─" * 40)
-                console.print(final_result)
-                console.print("─" * 40)
+            try:
+                for chunk in client.generate(prompt):
+                    result.append(chunk)
+                    console.print(chunk, end='', flush=True)
+                
+                final_result = ''.join(result)
+                
+                # Handle output
+                if output_file:
+                    try:
+                        output_file.parent.mkdir(parents=True, exist_ok=True)
+                        output_file.write_text(final_result)
+                        console.print(f"\n[green]Results written to:[/green] {output_file}")
+                    except Exception as e:
+                        console.print(f"[red]Error writing output file:[/red] {e}")
+                        raise click.Abort()
+                else:
+                    console.print("\n[bold]Results:[/bold]")
+                    console.print("─" * 40)
+                    console.print(final_result)
+                    console.print("─" * 40)
+
+            except json.JSONDecodeError as e:
+                console.print(f"[red]Error parsing JSON response:[/red] {e}")
+                console.print("[yellow]Raw response:[/yellow]")
+                console.print(result)
+                raise click.Abort()
+            except Exception as e:
+                console.print(f"[red]Error during inference:[/red] {e}")
+                console.print("[yellow]Raw response:[/yellow]")
+                console.print(result)
+                raise click.Abort()
 
     except Exception as e:
-        console.print(f"[red]Error during extraction:[/red] {e}")
+        console.print(f"[red]Error during extraction:[/red] {str(e)}")
+        import traceback
+        console.print("[yellow]Traceback:[/yellow]")
+        console.print(traceback.format_exc())
         raise click.Abort()
 
 if __name__ == '__main__':
